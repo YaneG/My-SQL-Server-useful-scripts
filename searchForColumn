@@ -1,0 +1,11 @@
+/* 
+   This script searches the entire database for a particular column (field)
+   Use case: you want to find which table a particular filed/column is in
+   Return: all tables/columns that match the string. If no results then the value was not found; try partial string, ie "vehicle" for "system_vehicle_type".
+*/
+
+SELECT col.name  AS 'ColumnName', tab.name AS 'TableName'
+FROM sys.columns col
+JOIN sys.tables  tab  ON col.object_id = tab.object_id
+WHERE col.name LIKE '%crash_vehicle_type%' --enter the field name here
+ORDER BY TableName,ColumnName;
