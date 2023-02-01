@@ -1,0 +1,61 @@
+/* 
+   Use this script searches the entire database for a particular value
+   Use case: you want to find what table/cell is holding a particular data
+   Use case: Looking for the cv table has the 'single carriageway' entry
+   Returns: the table/column with the given value. If no results returned then the value was not found; try a part of the value (ie: "veh" for "type of vehicle")
+   To execute: paste the script in a SQL server query window while connected to the desired database and replace the search term in following line
+*/
+DECLARE @SearchStr nvarchar(100) = 'single carriageway'--Insert the search term here
+DECLARE @Results TABLE (ColumnName nvarchar(370), ColumnValue nvarchar(3630))
+
+SET NOCOUNT ON
+
+DECLARE @TableName nvarchar(256), @ColumnName nvarchar(128), @SearchStr2 nvarchar(110)
+SET  @TableName = ''
+SET @SearchStr2 = QUOTENAME('%' + @SearchStr + '%','''')
+
+WHILE @TableName IS NOT NULL
+
+BEGIN
+    SET @ColumnName = ''
+    SET @TableName = 
+    (
+        SELECT MIN(QUOTENAME(TABLE_SCHEMA) + '.' + QUOTENAME(TABLE_NAME))
+        FROM     INFORMATION_SCHEMA.TABLES
+        WHERE         TABLE_TYPE = 'BASE TABLE'
+            AND    QUOTENAME(TABLE_SCHEMA) + '.' + QUOTENAME(TABLE_NAME) > @TableName
+            AND    OBJECTPROPERTY(
+                    OBJECT_ID(
+                        QUOTENAME(TABLE_SCHEMA) + '.' + QUOTENAME(TABLE_NAME)
+                         ), 'IsMSShipped'
+                           ) = 0
+    )
+
+    WHILE (@TableName IS NOT NULL) AND (@ColumnName IS NOT NULL)
+
+    BEGIN
+        SET @ColumnName =
+        (
+            SELECT MIN(QUOTENAME(COLUMN_NAME))
+            FROM     INFORMATION_SCHEMA.COLUMNS
+            WHERE         TABLE_SCHEMA    = PARSENAME(@TableName, 2)
+                AND    TABLE_NAME    = PARSENAME(@TableName, 1)
+                AND    DATA_TYPE IN ('char', 'varchar', 'nchar', 'nvarchar', 'int', 'decimal')
+                AND    QUOTENAME(COLUMN_NAME) > @ColumnName
+        )
+
+        IF @ColumnName IS NOT NULL
+
+        BEGIN
+            INSERT INTO @Results
+            EXEC
+            (
+                'SELECT ''' + @TableName + '.' + @ColumnName + ''', LEFT(' + @ColumnName + ', 3630) 
+                FROM ' + @TableName + ' (NOLOCK) ' +
+                ' WHERE ' + @ColumnName + ' LIKE ' + @SearchStr2
+            )
+        END
+    END    
+END
+
+SELECT ColumnName, ColumnValue FROM @Results
