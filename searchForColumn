@@ -2,6 +2,7 @@
    This script searches the entire database for a particular column (field)
    Use case: you want to find which table a particular filed/column is in
    Return: all tables/columns that match the string. If no results then the value was not found; try partial string, ie "vehicle" for "system_vehicle_type".
+   To execute: Paste the script in a SQL server query window while connected to the desired database and replace the search term in repsectirve line (line number 11 currently)
 */
 
 SELECT col.name  AS 'ColumnName', tab.name AS 'TableName'
